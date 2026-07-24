@@ -13,6 +13,7 @@ const staticAssets = [
     'options.html',
     'wordlist.html',
     'help.html',
+    'offscreen.html',
 ];
 
 function copyRecursive(src, dest) {
@@ -101,6 +102,8 @@ async function build(watch) {
       'src/lang/chinese/wordlist.ts': 'dist/wordlist.js',
       // Options page
       'src/entry/options.ts': 'dist/options.js',
+      // Offscreen document for audio playback
+      'src/entry/offscreen.ts': 'dist/offscreen.js',
     };
 
     for (const [src, outfile] of Object.entries(scripts)) {

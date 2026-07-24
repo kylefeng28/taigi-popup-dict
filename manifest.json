@@ -49,6 +49,7 @@
   },
   "permissions": [
     "contextMenus",
+    "offscreen",
     "storage",
     "tabs"
   ],

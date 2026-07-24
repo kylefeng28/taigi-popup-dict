@@ -87,6 +87,8 @@ let altView: number = 0;
 
 let savedSearchResults: string[][] & { grammar?: MultiDictSearchResult['grammar']; vocab?: MultiDictSearchResult['vocab'] } = [];
 
+let savedDictResults: DictionaryResult[] = [];
+
 let savedSelStartOffset: number = 0;
 
 let savedSelEndList: SelectionEnd[] = [];
@@ -430,9 +432,10 @@ function onKeyDown(keyDown: KeyboardEvent): void {
             break;
 
         case 69: // 'e': TTS Cantonese
-            if (config.ttsEnabled) {
-                ttsCantonese(window.getSelection()?.toString() || '');
-            }
+            playTaigiAudio();
+            // if (config.ttsEnabled) {
+            //     ttsCantonese(window.getSelection()?.toString() || '');
+            // }
             break;
 
         default:
@@ -925,6 +928,26 @@ function copyToClipboard(data: string): void {
     });
 }
 
+/**
+ * Play the Taigi audio for the first matching entry that has an audio ID.
+ * Audio is hosted on the MOE website, partitioned by floor(id / 1000).
+ * Playback is routed through an offscreen document via the background service worker.
+ */
+function playTaigiAudio(): void {
+    // Find the first Taigi result with an audioId
+    const taigiEntry = savedDictResults.find(e => e.source === 'taigi' && e.audioId);
+    if (!taigiEntry || !taigiEntry.audioId) {
+	    console.log('No audio found')
+			return;
+		};
+
+    const audioId = taigiEntry.audioId;
+    const partition = Math.floor(Number(audioId) / 1000);
+    const url = `https://sutian.moe.edu.tw/media/senn/mp3/imtong/subak/${partition}/${audioId}.mp3`;
+
+    chrome.runtime.sendMessage({ type: 'playAudio', url });
+}
+
 function makeHtml(multiResult: MultiDictSearchResult, showToneColors: boolean): string {
 
     let html = '';
@@ -957,6 +980,7 @@ function makeHtml(multiResult: MultiDictSearchResult, showToneColors: boolean): 
     savedSearchResults = texts as string[][] & { grammar?: MultiDictSearchResult['grammar']; vocab?: MultiDictSearchResult['vocab'] };
     savedSearchResults.grammar = multiResult.grammar;
     savedSearchResults.vocab = multiResult.vocab;
+    savedDictResults = multiResult.results;
 
     return html;
 }

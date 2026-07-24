@@ -8,6 +8,7 @@ export interface TaigiRawEntry {
         id: string;
         trs: string;
         reading?: string;
+        audio_file?: string;
         definitions: Array<{
             type?: string;
             def: string;
@@ -62,6 +63,7 @@ export class TaigiDictionary implements Dictionary {
 
     search(text: string, maxResults: number = 7): DictSearchResponse | null {
         const entries: DictionaryResult[] = [];
+
         let maxLen = 0;
         let more = false;
 
@@ -96,6 +98,7 @@ export class TaigiDictionary implements Dictionary {
                         definitions,
                         source: 'taigi',
                         readingType: het.reading,
+                        audioId: het.audio_file,
                     });
                 }
                 if (more) break;

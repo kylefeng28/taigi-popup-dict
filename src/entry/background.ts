@@ -286,6 +286,53 @@ async function search(text: string): Promise<MultiDictSearchResult | null> {
     return dictManager.search(text);
 }
 
+// --- Audio playback via offscreen document ---
+
+let offscreenCreated = false;
+
+async function ensureOffscreen(): Promise<void> {
+    // Check if an offscreen document already exists
+    const existingContexts = await chrome.runtime.getContexts({
+      contextTypes: ['OFFSCREEN_DOCUMENT']
+    });
+
+    if (existingContexts.length) return;
+
+    console.log('[Zhongwen] Creating offscreen');
+    try {
+        await (chrome as any).offscreen.createDocument({
+            url: 'offscreen.html',
+            reasons: [chrome.offscreen.Reason.AUDIO_PLAYBACK],
+            justification: 'Playing Taigi pronunciation audio from MOE website',
+        });
+        offscreenCreated = true;
+    } catch (e) {
+        // Already exists (e.g. after service worker restart)
+        if (String(e).includes('Only a single offscreen')) {
+            offscreenCreated = true;
+        } else {
+            throw e;
+        }
+    }
+}
+
+chrome.runtime.onMessage.addListener(function (
+    message: { type: string; url?: string }
+): undefined {
+    if (message.type === 'playAudio' && message.url) {
+        console.log('[Zhongwen] Sending audio to offscreen', message)
+        ensureOffscreen().then(() => {
+            chrome.runtime.sendMessage({ type: 'playAudio', url: message.url });
+        });
+    }
+    if (message.type === 'stopAudio') {
+        ensureOffscreen().then(() => {
+            chrome.runtime.sendMessage({ type: 'stopAudio' });
+        });
+    }
+    return undefined;
+});
+
 // Rebuild the dictionary manager when dictionary-related settings change
 const DICT_CONFIG_KEYS = ['enabledDicts'];
 chrome.storage.onChanged.addListener((changes, areaName) => {

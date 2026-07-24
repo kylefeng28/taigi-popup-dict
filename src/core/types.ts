@@ -84,6 +84,8 @@ export interface DictionaryResult {
     source: string;
     /** Reading type label (e.g. '白', '文', '替' for Taigi heteronyms) */
     readingType?: string;
+    /** Audio file ID (e.g. for Taigi MOE audio) */
+    audioId?: string;
 }
 
 /** Response from a single dictionary search */
