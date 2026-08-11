@@ -1,5 +1,6 @@
 import { TaigiDictionary } from './taigi';
 import type { DictionaryLoader } from './dictionary';
+import { getJsonGzipped } from '../util';
 
 /**
  * Loader for the Taigi (Taiwanese Hokkien) dictionary.
@@ -9,7 +10,7 @@ export class TaigiLoader implements DictionaryLoader {
     readonly id = 'taigi';
 
     async loadDictionary(): Promise<TaigiDictionary> {
-        const data = await fetch(chrome.runtime.getURL('data/dict-twblg.json')).then(r => r.json());
+        const data = await getJsonGzipped('data/dict-twblg.json.gz');
         return new TaigiDictionary(data);
     }
 
