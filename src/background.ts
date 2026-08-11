@@ -314,6 +314,10 @@ async function getJsonGzipped(path: str): Promise<any> {
 
 async function loadDictionary(): Promise<TaigiDictionary> {
     const taigiData = await getJsonGzipped('data/dict-twblg.json.gz');
+    const taigiDataExt = await getJsonGzipped('data/dict-twblg-ext.json.gz');
+    for (let i = 0; i < taigiDataExt.length; i++) {
+        taigiData.push(taigiDataExt[i]);
+    }
     return new TaigiDictionary(taigiData);
 }
 

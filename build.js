@@ -47,6 +47,7 @@ function copyStaticAssets() {
 
     // gzip large dictionary file
     execSync('gzip dist/data/dict-twblg.json');
+    execSync('gzip dist/data/dict-twblg-ext.json');
 }
 
 async function buildOrWatch(buildOptions, watch) {
