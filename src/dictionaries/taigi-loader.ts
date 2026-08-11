@@ -11,6 +11,10 @@ export class TaigiLoader implements DictionaryLoader {
 
     async loadDictionary(): Promise<TaigiDictionary> {
         const data = await getJsonGzipped('data/dict-twblg.json.gz');
+        const dataExt = await getJsonGzipped('data/dict-twblg-ext.json.gz');
+        for (let i = 0; i < dataExt.length; i++) {
+            data.push(dataExt[i]);
+        }
         return new TaigiDictionary(data);
     }
 
