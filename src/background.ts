@@ -305,8 +305,15 @@ function search(text: string): Promise<SearchResult | null> {
     }
 }
 
+async function getJsonGzipped(path: str): Promise<any> {
+    const response  = await fetch(chrome.runtime.getURL(path));
+    const gzipStream  = response.body;
+    const decompressedStream = gzipStream.pipeThrough(new DecompressionStream('gzip'));
+    return await new Response(decompressedStream).json();
+}
+
 async function loadDictionary(): Promise<TaigiDictionary> {
-    const taigiData = await fetch(chrome.runtime.getURL('data/dict-twblg.json')).then(r => r.json());
+    const taigiData = await getJsonGzipped('data/dict-twblg.json.gz');
     return new TaigiDictionary(taigiData);
 }
 

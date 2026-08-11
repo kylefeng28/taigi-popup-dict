@@ -11,12 +11,21 @@
     "48": "images/taigi48.png",
     "128": "images/taigi.png"
   },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "@taigi-popup-dictionary",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  },
   "action": {
     "default_icon": "images/taigi48.png",
     "default_title": "Taiwanese Taigi Popup Dictionary"
   },
   "background": {
     "service_worker": "background.js",
+    "scripts": ["background.js"],
     "type": "module"
   },
   "content_scripts": [

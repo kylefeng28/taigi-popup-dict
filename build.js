@@ -1,6 +1,7 @@
 const esbuild = require('esbuild');
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 // Directories and files to copy as-is into dist/
 const staticAssets = [
@@ -43,6 +44,9 @@ function copyStaticAssets() {
         }
         copyRecursive(src, dest);
     }
+
+    // gzip large dictionary file
+    execSync('gzip dist/data/dict-twblg.json');
 }
 
 async function buildOrWatch(buildOptions, watch) {
