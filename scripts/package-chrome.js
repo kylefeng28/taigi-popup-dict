@@ -6,7 +6,7 @@ const name = 'taigi';
 const distDir = path.resolve('dist');
 const manifest = JSON.parse(fs.readFileSync(path.join(distDir, 'manifest.json'), 'utf-8'));
 const version = manifest.version;
-const outFile = path.resolve(`${name}-${version}.zip`);
+const outFile = path.resolve(`${name}-${version}-chrome.zip`);
 
 // Remove old zip if it exists
 if (fs.existsSync(outFile)) {
