@@ -55,10 +55,11 @@ let dictManager = new DictionaryManager(chineseModule);
 
 chrome.runtime.onInstalled.addListener((): void => {
 
+
     chrome.contextMenus.create(
         {
-            id: 'wordlistMenuItem',
-            title: 'Open word list'
+            id: 'optionsMenuItem',
+            title: 'Show preferences'
         }, () => {
             if (chrome.runtime.lastError) {
                 // ignore
@@ -78,42 +79,14 @@ chrome.runtime.onInstalled.addListener((): void => {
     );
 });
 
-chrome.contextMenus.onClicked.addListener(wordlistMenuItemListener);
+chrome.contextMenus.onClicked.addListener(optionsMenuItemListener);
 
 chrome.contextMenus.onClicked.addListener(helpMenuItemListener);
 
-function wordlistMenuItemListener({menuItemId}: chrome.contextMenus.OnClickData): void {
-
-    chrome.storage.session.get('tabIDs', ({tabIDs = {}}) => {
-        if (menuItemId === 'wordlistMenuItem') {
-            let url = '/wordlist.html';
-            let tabID = tabIDs['wordlist'];
-            if (tabID) {
-                chrome.tabs.get(tabID, function (tab: chrome.tabs.Tab) {
-                    if (!chrome.runtime.lastError && tab && tab.url && (tab.url.endsWith('wordlist.html'))) {
-                        chrome.tabs.update(tabID!, {
-                            active: true
-                        });
-                    } else {
-                        chrome.tabs.create({
-                            url: url
-                        }, function (tab: chrome.tabs.Tab) {
-                            tabIDs['wordlist'] = tab.id!;
-                            chrome.storage.session.set({tabIDs});
-                        });
-                    }
-                });
-            } else {
-                chrome.tabs.create(
-                    {url: url},
-                    function (tab: chrome.tabs.Tab) {
-                        tabIDs['wordlist'] = tab.id!;
-                        chrome.storage.session.set({tabIDs});
-                    }
-                );
-            }
-        }
-    });
+function optionsMenuItemListener({menuItemId}: chrome.contextMenus.OnClickData): void {
+    if (menuItemId === 'helpMenuItem') {
+        chrome.runtime.openOptionsPage();
+    }
 }
 
 function helpMenuItemListener({menuItemId}: chrome.contextMenus.OnClickData): void {
@@ -286,11 +259,29 @@ chrome.runtime.onMessage.addListener(function (
     return undefined;
 });
 
-async function search(text: string): Promise<MultiDictSearchResult | null> {
-    if (!dictManager.loaded) {
-			  await loadConfig();
-        await dictManager.loadDictionaries(config.enabledDicts);
+let loadingPromise: Promise<void> | null = null;
+
+async function ensureDictionariesLoaded(): Promise<void> {
+    if (dictManager.loaded) return;
+
+    // Coalesce concurrent load requests. On browser start / first activation
+    // many hover-triggered searches arrive nearly simultaneously; without this
+    // guard each would kick off its own loadDictionaries() call and push the
+    // same dictionaries into the shared list, producing duplicate entries.
+    if (!loadingPromise) {
+        loadingPromise = (async () => {
+            await loadConfig();
+            await dictManager.loadDictionaries(config.enabledDicts);
+        })().finally(() => {
+            loadingPromise = null;
+        });
     }
+
+    await loadingPromise;
+}
+
+async function search(text: string): Promise<MultiDictSearchResult | null> {
+    await ensureDictionariesLoaded();
 
     return dictManager.search(text);
 }
@@ -302,6 +293,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     const changedKeys = Object.keys(changes);
     if (changedKeys.some(k => DICT_CONFIG_KEYS.includes(k))) {
         console.log('[Zhongwen] Dictionary config changed, rebuilding manager...');
+        loadingPromise = null;
         dictManager.deactivate();
     }
 });

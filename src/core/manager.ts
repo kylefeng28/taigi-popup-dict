@@ -18,6 +18,14 @@ export class DictionaryManager {
     }
 
     addDictionary(dict: Dictionary): void {
+        // Replace any existing dictionary with the same id rather than appending
+        // a duplicate. Guards against duplicate entries if a dictionary is added
+        // more than once (e.g. overlapping load/refresh calls).
+        const existingIdx = this.dictionaries.findIndex(d => d.id === dict.id);
+        if (existingIdx !== -1) {
+            this.dictionaries[existingIdx] = dict;
+            return;
+        }
         this.dictionaries.push(dict);
     }
 

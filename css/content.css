@@ -29,13 +29,16 @@
   top: 5px;
   left: 5px;
   min-width: 100px;
+  max-width: 90vw;
   border-radius: 5px;
   box-shadow: 10px 10px 5px -5px #999999;
 }
 
 #zhongwen-window .group-columns {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  align-items: start;
 }
 
 #zhongwen-window .w-hanzi {
