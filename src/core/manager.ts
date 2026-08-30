@@ -1,21 +1,6 @@
-import type { Dictionary, DictionaryLoader } from './dictionary';
+import type { Dictionary } from './dictionary';
 import type { MultiDictSearchResult, DictionaryResult } from './types';
 import type { LanguageModule } from './language-module';
-import { CedictLoader, getDictStatus } from '../lang/chinese/cedict-loader';
-import { TaigiLoader } from '../lang/chinese/taigi-loader';
-import { ID as CEDICT_ID, NAME as CEDICT_NAME } from '../lang/chinese/cedict';
-import { ID as TAIGI_ID, NAME as TAIGI_NAME } from '../lang/chinese/taigi';
-
-/** All available loaders, keyed by dictionary ID */
-const ALL_LOADERS: Record<string, DictionaryLoader> = {
-    cedict: new CedictLoader(),
-    taigi: new TaigiLoader(),
-};
-
-export const ALL_DICTIONARIES = [
-    { id: CEDICT_ID, label: CEDICT_NAME },
-    { id: TAIGI_ID, label: TAIGI_NAME },
-];
 
 /**
  * Manages multiple dictionary instances and aggregates search results.
@@ -62,7 +47,7 @@ export class DictionaryManager {
 
         // Load dictionaries in the order specified by enabledDicts
         for (const dictId of enabledDicts) {
-            const loader = ALL_LOADERS[dictId];
+            const loader = this.languageModule.dictionaries.loaders[dictId];
             if (!loader) {
                 console.log(`[Zhongwen] Unknown dictionary type: ${dictId}`)
                 continue;
@@ -85,7 +70,7 @@ export class DictionaryManager {
         this.dictionaries = [];
 
         for (const dictId of ids) {
-            const loader = ALL_LOADERS[dictId];
+            const loader = this.languageModule.dictionaries.loaders[dictId];
             if (!loader) continue;
 
             try {
@@ -97,8 +82,8 @@ export class DictionaryManager {
         }
     }
 
-    async getDictStatus() {
-        return await getDictStatus();
+    async getDictStatus(): Promise<unknown> {
+        return await this.languageModule.dictionaries.getStatus?.();
     }
 
     /**
