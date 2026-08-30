@@ -1,4 +1,10 @@
 import type { ZhongwenConfig, MultiDictSearchResult, DictionaryResult } from './types';
+import type { Dictionary } from './dictionary';
+
+/** Minimal lookup surface a module needs to reach its own loaded dictionaries. */
+export interface DictionaryLookup {
+    getDictionary(id: string): Dictionary | undefined;
+}
 
 /**
  * Context passed to a language module when rendering a single entry.
@@ -32,4 +38,11 @@ export interface LanguageModule {
 
     /** Render a single dictionary entry to an HTML string for the popup. */
     renderEntry(entry: DictionaryResult, ctx: RenderContext): string;
+
+    /**
+     * Enrich an aggregated search result with language-specific metadata
+     * (e.g. grammar/vocab hints). Called after the core aggregates results,
+     * with a lookup for the module's own loaded dictionaries. Optional.
+     */
+    postProcessSearch?(result: MultiDictSearchResult, dicts: DictionaryLookup): void;
 }
