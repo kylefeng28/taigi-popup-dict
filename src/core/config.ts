@@ -18,7 +18,7 @@ export const defaultConfig: ZhongwenConfig = {
 
 let config: ZhongwenConfig = { ...defaultConfig };
 
-export function loadConfig(callback = undefined) {
+export function loadConfig(callback: (() => void) | undefined = undefined) {
     return new Promise((resolve) => {
         chrome.storage.local.get(null, (storedConfig: Record<string, unknown>) => {
             if (storedConfig) {

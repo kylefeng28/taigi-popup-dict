@@ -1,10 +1,10 @@
 import type { Dictionary, DictionaryLoader } from './dictionary';
-import type { MultiDictSearchResult, DictionaryResult } from '../shared/types';
-import { CedictDictionary } from './cedict';
-import { CedictLoader, getDictStatus } from './cedict-loader';
-import { TaigiLoader } from './taigi-loader';
-import { ID as CEDICT_ID, NAME as CEDICT_NAME } from './cedict.ts';
-import { ID as TAIGI_ID, NAME as TAIGI_NAME } from './taigi.ts';
+import type { MultiDictSearchResult, DictionaryResult } from './types';
+import { CedictDictionary } from '../lang/chinese/cedict';
+import { CedictLoader, getDictStatus } from '../lang/chinese/cedict-loader';
+import { TaigiLoader } from '../lang/chinese/taigi-loader';
+import { ID as CEDICT_ID, NAME as CEDICT_NAME } from '../lang/chinese/cedict';
+import { ID as TAIGI_ID, NAME as TAIGI_NAME } from '../lang/chinese/taigi';
 
 /** All available loaders, keyed by dictionary ID */
 const ALL_LOADERS: Record<string, DictionaryLoader> = {
