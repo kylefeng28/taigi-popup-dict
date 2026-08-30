@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Taigi: Taiwainese 台語 Popup Dictionary",
   "short_name": "Taigi",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": "Kyle Feng",
   "homepage_url": "https://github.com/kylefeng28/zhongwen/tree/main-taigi",
   "description": "Popup Dictionary for Taiwanese Taigi 台語",
