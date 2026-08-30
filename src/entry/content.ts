@@ -907,26 +907,37 @@ function copyToClipboard(data: string): void {
     });
 }
 
-function makeHtml(result: MultiDictSearchResult, showToneColors: boolean): string {
+function makeHtml(multiResult: MultiDictSearchResult, showToneColors: boolean): string {
 
     let html = '';
     let texts: string[][] = [];
 
-    if (result === null) return '';
+    if (multiResult === null) return '';
 
-    for (let i = 0; i < result.results.length; ++i) {
-        const entry: DictionaryResult = result.results[i];
-        const ctx: RenderContext = { config, result, index: i, showToneColors, texts };
-        html += chineseModule.renderEntry(entry, ctx);
-    }
+    const results = multiResult.results.map((entry, i) => {
+        const ctx: RenderContext = { config, result: multiResult, index: i, showToneColors, texts };
+        const html = chineseModule.renderEntry(entry, ctx);
+				return { source: entry.source, html };
+    });
+		const groups = Object.groupBy(results, result => result.source);
 
-    if (result.more) {
+		html += '<div class="group-columns">';
+		for (const group of Object.values(groups)) {
+			html += '<div class="group">';
+			for (const entry of group) {
+			    html += entry.html;
+			}
+			html += "</div>";
+		}
+		html += "</div>";
+
+    if (multiResult.more) {
         html += '&hellip;<br/>';
     }
 
     savedSearchResults = texts as string[][] & { grammar?: MultiDictSearchResult['grammar']; vocab?: MultiDictSearchResult['vocab'] };
-    savedSearchResults.grammar = result.grammar;
-    savedSearchResults.vocab = result.vocab;
+    savedSearchResults.grammar = multiResult.grammar;
+    savedSearchResults.vocab = multiResult.vocab;
 
     return html;
 }
