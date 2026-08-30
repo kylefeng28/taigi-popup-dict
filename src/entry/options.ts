@@ -6,9 +6,11 @@
 
 // @ts-nocheck
 
-import { getConfig, loadConfig } from './shared/config';
-import type { ZhongwenConfig } from './shared/types';
-import { ALL_DICTIONARIES } from './dictionaries/manager';
+import { getConfig, loadConfig } from '../core/config';
+import type { ZhongwenConfig } from '../core/types';
+import { chineseModule } from '../lang/chinese';
+
+const ALL_DICTIONARIES = chineseModule.dictionaries.catalog;
 
 let config: ZhongwenConfig = getConfig();
 

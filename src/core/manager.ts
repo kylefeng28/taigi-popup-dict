@@ -1,27 +1,17 @@
-import type { Dictionary, DictionaryLoader } from './dictionary';
-import type { MultiDictSearchResult, DictionaryResult } from '../shared/types';
-import { CedictDictionary } from './cedict';
-import { CedictLoader, getDictStatus } from './cedict-loader';
-import { TaigiLoader } from './taigi-loader';
-import { ID as CEDICT_ID, NAME as CEDICT_NAME } from './cedict.ts';
-import { ID as TAIGI_ID, NAME as TAIGI_NAME } from './taigi.ts';
-
-/** All available loaders, keyed by dictionary ID */
-const ALL_LOADERS: Record<string, DictionaryLoader> = {
-    cedict: new CedictLoader(),
-    taigi: new TaigiLoader(),
-};
-
-export const ALL_DICTIONARIES = [
-    { id: CEDICT_ID, label: CEDICT_NAME },
-    { id: TAIGI_ID, label: TAIGI_NAME },
-];
+import type { Dictionary } from './dictionary';
+import type { MultiDictSearchResult, DictionaryResult } from './types';
+import type { LanguageModule } from './language-module';
 
 /**
  * Manages multiple dictionary instances and aggregates search results.
  */
 export class DictionaryManager {
     private dictionaries: Dictionary[] = [];
+    private languageModule: LanguageModule;
+
+    constructor(languageModule: LanguageModule) {
+        this.languageModule = languageModule;
+    }
 
     deactivate(): void {
         this.dictionaries = [];
@@ -57,7 +47,7 @@ export class DictionaryManager {
 
         // Load dictionaries in the order specified by enabledDicts
         for (const dictId of enabledDicts) {
-            const loader = ALL_LOADERS[dictId];
+            const loader = this.languageModule.dictionaries.loaders[dictId];
             if (!loader) {
                 console.log(`[Zhongwen] Unknown dictionary type: ${dictId}`)
                 continue;
@@ -80,7 +70,7 @@ export class DictionaryManager {
         this.dictionaries = [];
 
         for (const dictId of ids) {
-            const loader = ALL_LOADERS[dictId];
+            const loader = this.languageModule.dictionaries.loaders[dictId];
             if (!loader) continue;
 
             try {
@@ -92,8 +82,8 @@ export class DictionaryManager {
         }
     }
 
-    async getDictStatus() {
-        return await getDictStatus();
+    async getDictStatus(): Promise<unknown> {
+        return await this.languageModule.dictionaries.getStatus?.();
     }
 
     /**
@@ -124,24 +114,8 @@ export class DictionaryManager {
             more: hasMore || undefined,
         };
 
-        // Check for grammar/vocab keywords in CEDICT entries
-        const cedict = this.getDictionary('cedict') as CedictDictionary | undefined;
-        if (cedict) {
-            for (let i = 0; i < result.results.length; i++) {
-                const entry = result.results[i];
-                if (entry.source === 'cedict') {
-                    const word = entry.headword;
-                    if (cedict.hasGrammarKeyword(word) && result.matchLen === word.length) {
-                        // the final index should be the last one with the maximum length
-                        result.grammar = { keyword: word, index: i };
-                    }
-                    if (cedict.hasVocabKeyword(word) && result.matchLen === word.length) {
-                        // the final index should be the last one with the maximum length
-                        result.vocab = { keyword: word, index: i };
-                    }
-                }
-            }
-        }
+        // Let the active language module enrich the result (e.g. grammar/vocab hints).
+        this.languageModule.postProcessSearch?.(result, this);
 
         return result;
     }

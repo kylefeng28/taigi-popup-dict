@@ -4,9 +4,11 @@
  https://chrome.google.com/extensions/detail/kkmlkkjojmombglmlpbpapmhcaljjkde
  */
 
-import { defaultConfig } from './shared/config';
-import type { WordListEntry } from './shared/types';
-import { accentedPinyin2Zhuyin } from './shared/zhuyin';
+// @ts-nocheck
+
+import { defaultConfig } from '../../core/config';
+import type { WordListEntry } from '../../core/types';
+import { accentedPinyin2Zhuyin } from './zhuyin';
 
 const NOTES_COLUMN = 6;
 

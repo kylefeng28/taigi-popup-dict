@@ -1,5 +1,5 @@
-import type { Dictionary } from './dictionary';
-import type { DictSearchResponse, DictionaryResult, Definition } from '../shared/types';
+import type { Dictionary } from '../../core/dictionary';
+import type { DictSearchResponse, DictionaryResult, Definition } from '../../core/types';
 
 /** Raw JSON structure from dict-twblg.json */
 export interface TaigiRawEntry {
@@ -43,6 +43,7 @@ export const NAME = 'MoE Taiwanese Hokkien (台語)';
 
 export class TaigiDictionary implements Dictionary {
     readonly id = ID;
+    readonly name = NAME;
 
     /** Map from headword (Chinese characters) to entries */
     private index: Map<string, TaigiRawEntry[]>;
@@ -106,7 +107,7 @@ export class TaigiDictionary implements Dictionary {
         if (entries.length === 0) return null;
 
         // Sort readings
-        const readingOrder = { '白': 1, '文': 2, '替': 3, '俗': 4 };
+        const readingOrder: Record<string, number> = { '白': 1, '文': 2, '替': 3, '俗': 4 };
         entries.sort((a, b) => {
           const rankA = a.readingType ? readingOrder[a.readingType] : -Infinity;
           const rankB = b.readingType ? readingOrder[b.readingType] : -Infinity;

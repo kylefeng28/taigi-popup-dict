@@ -1,4 +1,4 @@
-import type { DictSearchResponse } from '../shared/types';
+import type { DictSearchResponse } from './types';
 
 /**
  * Abstract interface for a dictionary source.
