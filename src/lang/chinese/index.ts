@@ -25,18 +25,9 @@ function makeCedictHtml(entry: DictionaryResult, ctx: RenderContext): string {
         }
     }
 
-    // Pinyin
-    let pinyinClass = 'w-pinyin';
-    if (config.fontSize === 'small') {
-        pinyinClass += '-small';
-    }
-    let p: [string, string, string] = pinyinAndZhuyin(entry.reading, showToneColors, pinyinClass, config.fontSize);
+    // Pinyin / Zhuyin
+    let p: [string, string] = pinyinAndZhuyin(entry.reading, showToneColors, !config.zhuyin, config.zhuyin, config.fontSize);
     html += p[0];
-
-    // Zhuyin
-    if (config.zhuyin) {
-        html += '<br>' + p[2];
-    }
 
     // Definition
     let defClass = 'w-def';
@@ -125,6 +116,7 @@ function makeTaigiHtml(entry: DictionaryResult, ctx: RenderContext): string {
             }
         }
     }
+
     html += '<br>';
 
     // Store for clipboard: [simplified, traditional, reading, definition, raw_reading]
@@ -154,6 +146,13 @@ export const chineseModule: LanguageModule = {
             return makeCedictHtml(entry, ctx);
         } else if (entry.source === 'taigi') {
             return makeTaigiHtml(entry, ctx);
+        }
+        return '';
+    },
+
+    renderFooter(source: string): string {
+        if (source === 'taigi') {
+            return '<br><span class="moe">Press "o" to look up in MoE dictionary</span><br>';
         }
         return '';
     },

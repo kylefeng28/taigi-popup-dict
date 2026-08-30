@@ -59,15 +59,21 @@ export function tonify(vowels: string, tone: number): [string, string] {
 export function pinyinAndZhuyin(
     syllables: string,
     showToneColors: boolean,
-    pinyinClass: string,
+    pinyin: boolean,
+    zhuyin: boolean,
     fontSize: string
-): [string, string, string] {
+): [string, string] {
     let text = '';
     let html = '';
-    let zhuyin = '';
     let a: string[] = syllables.split(/[\s·]+/);
     for (let i = 0; i < a.length; i++) {
         let syllable: string = a[i];
+        let m: RegExpMatchArray | null = parse(syllable);
+
+        let pinyinClass = 'w-pinyin';
+        if (fontSize === 'small') {
+            pinyinClass += '-small';
+        }
 
         // ',' in pinyin
         if (syllable === ',') {
@@ -75,48 +81,54 @@ export function pinyinAndZhuyin(
             text += ' ,';
             continue;
         }
-
         if (i > 0) {
             html += '&nbsp;';
             text += ' ';
-            zhuyin += '&nbsp;';
-        }
-        if (syllable === 'r5') {
-            if (showToneColors) {
-                html += '<span class="' + pinyinClass + ' tone5">r</span>';
-            } else {
-                html += '<span class="' + pinyinClass + '">r</span>';
-            }
-            text += 'r';
-            continue;
-        }
-        if (syllable === 'xx5') {
-            if (showToneColors) {
-                html += '<span class="' + pinyinClass + ' tone5">??</span>';
-            } else {
-                html += '<span class="' + pinyinClass + '">??</span>';
-            }
-            text += '??';
-            continue;
-        }
-        let m: RegExpMatchArray | null = parse(syllable);
-        if (showToneColors) {
-            html += '<span class="' + pinyinClass + ' tone' + m![4] + '">';
-        } else {
-            html += '<span class="' + pinyinClass + '">';
-        }
-        let t: [string, string] = tonify(m![2], parseInt(m![4], 10));
-        html += m![1] + t[0] + m![3];
-        html += '</span>';
-        text += m![1] + t[1] + m![3];
-
-        let zhuyinClass = 'w-zhuyin';
-        if (fontSize === 'small') {
-            zhuyinClass += '-small';
         }
 
-        zhuyin += '<span class="tone' + m![4] + ' ' + zhuyinClass + '">'
-            + numericPinyin2Zhuyin(syllable) + '</span>';
+        if (pinyin) {
+            if (syllable === 'r5') {
+                if (showToneColors) {
+                    html += '<span class="' + pinyinClass + ' tone5">r</span>';
+                } else {
+                    html += '<span class="' + pinyinClass + '">r</span>';
+                }
+                text += 'r';
+                continue;
+            }
+            if (syllable === 'xx5') {
+                if (showToneColors) {
+                    html += '<span class="' + pinyinClass + ' tone5">??</span>';
+                } else {
+                    html += '<span class="' + pinyinClass + '">??</span>';
+                }
+                text += '??';
+                continue;
+            }
+            if (showToneColors) {
+                html += '<span class="' + pinyinClass + ' tone' + m![4] + '">';
+            } else {
+                html += '<span class="' + pinyinClass + '">';
+            }
+            let t: [string, string] = tonify(m![2], parseInt(m![4], 10));
+            html += m![1] + t[0] + m![3];
+            html += '</span>';
+        }
+
+        // Zhuyin
+        if (pinyin && zhuyin) {
+            html += '<br>' + p[2];
+        }
+
+        if (zhuyin) {
+            let zhuyinClass = 'w-zhuyin';
+            if (fontSize === 'small') {
+                zhuyinClass += '-small';
+            }
+
+            html += '<span class="tone' + m![4] + ' ' + zhuyinClass + '">'
+                + numericPinyin2Zhuyin(syllable) + '</span>';
+        }
     }
-    return [html, text, zhuyin];
+    return [html, text];
 }

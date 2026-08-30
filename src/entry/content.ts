@@ -405,6 +405,24 @@ function onKeyDown(keyDown: KeyboardEvent): void {
             }
             break;
 
+        case 79: // 'o': official MoE dict lookup
+            {
+
+                // use the traditional character for MoE dict lookup
+                let trad: string = savedSearchResults[0][1];
+
+                // e.g. https://sutian.moe.edu.tw/zh-hant/tshiau/?lui=tai_su&tsha=𨑨迌
+                let moe = 'https://sutian.moe.edu.tw/zh-hant/tshiau/?lui=tai_su&tsha=' +
+                    encodeURIComponent(trad);
+
+                chrome.runtime.sendMessage({
+                    type: 'open',
+                    tabType: 'moe',
+                    url: moe
+                });
+            }
+            break;
+
         case 87: // 'w': TTS Mandarin
             if (config.ttsEnabled) {
                 ttsMandarin(window.getSelection()?.toString() || '');
@@ -917,19 +935,20 @@ function makeHtml(multiResult: MultiDictSearchResult, showToneColors: boolean): 
     const results = multiResult.results.map((entry, i) => {
         const ctx: RenderContext = { config, result: multiResult, index: i, showToneColors, texts };
         const html = chineseModule.renderEntry(entry, ctx);
-				return { source: entry.source, html };
+        return { source: entry.source, html };
     });
-		const groups = Object.groupBy(results, result => result.source);
+    const groups = Object.groupBy(results, result => result.source);
 
-		html += '<div class="group-columns">';
-		for (const group of Object.values(groups)) {
-			html += '<div class="group">';
-			for (const entry of group) {
-			    html += entry.html;
-			}
-			html += "</div>";
-		}
-		html += "</div>";
+    html += '<div class="group-columns">';
+    for (const [source, group] of Object.entries(groups)) {
+      html += '<div class="group">';
+      for (const entry of group) {
+          html += entry.html;
+      }
+      html += chineseModule.renderFooter(source);
+      html += "</div>";
+    }
+    html += "</div>";
 
     if (multiResult.more) {
         html += '&hellip;<br/>';

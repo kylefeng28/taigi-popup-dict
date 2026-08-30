@@ -107,10 +107,10 @@ export class TaigiDictionary implements Dictionary {
         if (entries.length === 0) return null;
 
         // Sort readings
-        const readingOrder: Record<string, number> = { '白': 1, '文': 2, '替': 3, '俗': 4 };
+        const readingOrder: Record<string, number> = { '替': 1, '白': 3, '文': 4, '俗': 5 };
         entries.sort((a, b) => {
-          const rankA = a.readingType ? readingOrder[a.readingType] : -Infinity;
-          const rankB = b.readingType ? readingOrder[b.readingType] : -Infinity;
+          const rankA = a.readingType ? readingOrder[a.readingType] : 2;
+          const rankB = b.readingType ? readingOrder[b.readingType] : 2;
           return rankA - rankB;
         });
 

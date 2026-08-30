@@ -10,10 +10,10 @@ export const defaultConfig: ZhongwenConfig = {
     toneColors: true,
     toneColorScheme: 'standard',
     vocab: true,
-    zhuyin: false,
+    zhuyin: true,
     clipboardFormat: '{simplified}\t{traditional}\t{pinyin}\t{definition}',
     ttsEnabled: false,
-    enabledDicts: ['cedict', 'taigi'],
+    enabledDicts: ['taigi', 'cedict'],
 };
 
 let config: ZhongwenConfig = { ...defaultConfig };

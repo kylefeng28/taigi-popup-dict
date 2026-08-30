@@ -85,6 +85,10 @@
   font-weight: bold;
 }
 
+#zhongwen-window .moe {
+  font-weight: bold;
+}
+
 /* Yellow Background */
 #zhongwen-window.background-yellow,
 #zhongwen-window.background-yellow * {

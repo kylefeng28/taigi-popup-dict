@@ -55,6 +55,9 @@ export interface LanguageModule {
     /** Render a single dictionary entry to an HTML string for the popup. */
     renderEntry(entry: DictionaryResult, ctx: RenderContext): string;
 
+    /** Render footer for the dictionary source. */
+    renderFooter(source: string): string;
+
     /**
      * Enrich an aggregated search result with language-specific metadata
      * (e.g. grammar/vocab hints). Called after the core aggregates results,
