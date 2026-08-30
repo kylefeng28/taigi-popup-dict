@@ -44,25 +44,20 @@
 
  */
 
-import { defaultConfig } from './shared/config';
+import { getConfig, loadConfig } from './shared/config';
 import { numericPinyin2Zhuyin } from './shared/zhuyin';
 import { ttsMandarin, ttsCantonese } from './tts';
-import type { ZhongwenConfig, DictionaryResult, SearchResult, SelectionEnd } from './shared/types';
+import type { ZhongwenConfig, MultiDictSearchResult, DictionaryResult, SelectionEnd } from './shared/types';
 
-let config: ZhongwenConfig = { ...defaultConfig };
-
-chrome.storage.local.get(null, (storedConfig: Record<string, unknown>) => {
-    if (storedConfig) {
-        Object.entries(storedConfig).forEach(e => (config as unknown as Record<string, unknown>)[e[0]] = e[1]);
-    }
-});
+let config: ZhongwenConfig = getConfig();
+loadConfig();
 
 chrome.storage.onChanged.addListener((changes: Record<string, chrome.storage.StorageChange>, areaName: string) => {
 
     if (areaName !== 'local') return;
 
     // format: {"background":{"newValue":"lightblue","oldValue":"blue"}, "toneColors":{"newValue":false,"oldValue":true}}
-    Object.entries(changes).forEach(e => (config as unknown as Record<string, unknown>)[e[0]] = e[1].newValue);
+    loadConfig();
 });
 
 let savedTarget: EventTarget | null = null;
@@ -89,7 +84,7 @@ let timer: ReturnType<typeof setTimeout> | null = null;
 
 let altView: number = 0;
 
-let savedSearchResults: string[][] & { grammar?: SearchResult['grammar']; vocab?: SearchResult['vocab'] } = [];
+let savedSearchResults: string[][] & { grammar?: MultiDictSearchResult['grammar']; vocab?: MultiDictSearchResult['vocab'] } = [];
 
 let savedSelStartOffset: number = 0;
 
@@ -576,7 +571,7 @@ function triggerSearch(): number {
     return 0;
 }
 
-function processSearchResult(result: SearchResult | null): void {
+function processSearchResult(result: MultiDictSearchResult | null): void {
 
     let selStartOffset: number = savedSelStartOffset;
     let selEndList: SelectionEnd[] = savedSelEndList;
@@ -911,27 +906,98 @@ function copyToClipboard(data: string): void {
     });
 }
 
-function makeHtml(result: SearchResult, showToneColors: boolean): string {
+function makeHtml(result: MultiDictSearchResult, showToneColors: boolean): string {
+
     let html = '';
     let texts: string[][] = [];
 
     if (result === null) return '';
 
-    for (let i = 0; i < result.data.length; ++i) {
-        html += makeTaigiHtml(result.data[i], i, texts);
+    for (let i = 0; i < result.results.length; ++i) {
+        const entry: DictionaryResult = result.results[i];
+
+        if (entry.source === 'cedict') {
+            html += makeCedictHtml(entry, i, result, showToneColors, texts);
+        } else if (entry.source === 'taigi') {
+            html += makeTaigiHtml(entry, i, texts);
+        }
     }
 
     if (result.more) {
         html += '&hellip;<br/>';
     }
 
-    savedSearchResults = texts as string[][] & { grammar?: SearchResult['grammar']; vocab?: SearchResult['vocab'] };
+    savedSearchResults = texts as string[][] & { grammar?: MultiDictSearchResult['grammar']; vocab?: MultiDictSearchResult['vocab'] };
     savedSearchResults.grammar = result.grammar;
     savedSearchResults.vocab = result.vocab;
 
     return html;
 }
 
+/** Render a CEDICT entry in the popup */
+function makeCedictHtml(entry: DictionaryResult, index: number, result: MultiDictSearchResult, showToneColors: boolean, texts: string[][]): string {
+    let html = '';
+    let hanziClass = 'w-hanzi';
+    if (config.fontSize === 'small') {
+        hanziClass += '-small';
+    }
+
+    // Hanzi
+    if (config.simpTrad === 'auto') {
+        html += '<span class="' + hanziClass + '">' + entry.headword + '</span>&nbsp;';
+    } else {
+        html += '<span class="' + hanziClass + '">' + entry.headword + '</span>&nbsp;';
+        if (entry.traditional && entry.traditional !== entry.headword) {
+            html += '<span class="' + hanziClass + '">' + entry.traditional + '</span>&nbsp;';
+        }
+    }
+
+    // Pinyin
+    let pinyinClass = 'w-pinyin';
+    if (config.fontSize === 'small') {
+        pinyinClass += '-small';
+    }
+    let p: [string, string, string] = pinyinAndZhuyin(entry.reading, showToneColors, pinyinClass);
+    html += p[0];
+
+    // Zhuyin
+    if (config.zhuyin) {
+        html += '<br>' + p[2];
+    }
+
+    // Definition
+    let defClass = 'w-def';
+    if (config.fontSize === 'small') {
+        defClass += '-small';
+    }
+    let translation: string = entry.definitions.map(d => d.def).join(' ◆ ');
+    html += '<br><span class="' + defClass + '">' + translation + '</span><br>';
+
+    let addFinalBr: boolean = false;
+
+    // Grammar
+    if (config.grammar && result.grammar && result.grammar.index === index) {
+        html += '<br><span class="grammar">Press "g" for grammar and usage notes.</span><br>';
+        addFinalBr = true;
+    }
+
+    // Vocab
+    if (config.vocab && result.vocab && result.vocab.index === index) {
+        html += '<br><span class="vocab">Press "v" for vocabulary notes.</span><br>';
+        addFinalBr = true;
+    }
+
+    if (addFinalBr) {
+        html += '<br>';
+    }
+
+    // Store for clipboard: [simplified, traditional, pinyin_text, translation, raw_pinyin]
+    texts[index] = [entry.headword, entry.traditional || entry.headword, p[1], translation, entry.reading];
+
+    return html;
+}
+
+/** Render a Taigi entry in the popup */
 function makeTaigiHtml(entry: DictionaryResult, index: number, texts: string[][]): string {
     let html = '';
     let hanziClass = 'w-hanzi';
@@ -994,6 +1060,7 @@ function makeTaigiHtml(entry: DictionaryResult, index: number, texts: string[][]
     return html;
 }
 
+
 let tones: Record<number, string> = {
     1: '&#772;',
     2: '&#769;',
@@ -1044,7 +1111,6 @@ function tonify(vowels: string, tone: number): [string, string] {
     return [html, text];
 }
 
-/*
 function pinyinAndZhuyin(syllables: string, showToneColors: boolean, pinyinClass: string): [string, string, string] {
     let text = '';
     let html = '';
@@ -1104,7 +1170,6 @@ function pinyinAndZhuyin(syllables: string, showToneColors: boolean, pinyinClass
     }
     return [html, text, zhuyin];
 }
-*/
 
 let miniHelp: string = `
     <span style="font-weight: bold;">Zhongwen Chinese-English Dictionary</span><br><br>

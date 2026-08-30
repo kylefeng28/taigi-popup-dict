@@ -1,4 +1,5 @@
-import type { DictionaryResult, Definition } from '../shared/types';
+import type { Dictionary } from './dictionary';
+import type { DictSearchResponse, DictionaryResult, Definition } from '../shared/types';
 
 /** Raw JSON structure from dict-twblg.json */
 export interface TaigiRawEntry {
@@ -37,7 +38,12 @@ function parseExample(raw: string): { text: string; reading?: string; translatio
     };
 }
 
-export class TaigiDictionary {
+export const ID = 'taigi';
+export const NAME = 'MoE Taiwanese Hokkien (台語)';
+
+export class TaigiDictionary implements Dictionary {
+    readonly id = ID;
+
     /** Map from headword (Chinese characters) to entries */
     private index: Map<string, TaigiRawEntry[]>;
 
@@ -53,7 +59,7 @@ export class TaigiDictionary {
         }
     }
 
-    search(text: string, maxResults: number = 7): SearchResult | null {
+    search(text: string, maxResults: number = 7): DictSearchResponse | null {
         const entries: DictionaryResult[] = [];
         let maxLen = 0;
         let more = false;
@@ -87,6 +93,7 @@ export class TaigiDictionary {
                         headword: rawEntry.title,
                         reading: het.trs,
                         definitions,
+                        source: 'taigi',
                         readingType: het.reading,
                     });
                 }
@@ -106,6 +113,6 @@ export class TaigiDictionary {
           return rankA - rankB;
         });
 
-        return { matchLen: maxLen, data: entries, more };
+        return { matchLen: maxLen, entries, more };
     }
 }

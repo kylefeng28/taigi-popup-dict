@@ -44,11 +44,13 @@
 
  */
 
-import { TaigiDictionary } from './taigi';
-import { defaultConfig } from './shared/config';
-import type { ZhongwenConfig, SearchResult, WordListEntry } from './shared/types';
+import { DictionaryManager } from './dictionaries/manager';
+import { getConfig, loadConfig } from './shared/config';
+import type { ZhongwenConfig, MultiDictSearchResult, WordListEntry } from './shared/types';
 
-let dict: TaigiDictionary | undefined;
+let config: ZhongwenConfig = getConfig();
+
+let dictManager = new DictionaryManager();
 
 chrome.runtime.onInstalled.addListener((): void => {
 
@@ -200,7 +202,7 @@ function deactivateExtension(): void {
 
     chrome.storage.local.set({isActive: false});
 
-    dict = undefined;
+    dictManager.deactivate();
 
     showInactiveBadge();
 
@@ -240,7 +242,7 @@ function disableAllTabs(): void {
 chrome.runtime.onMessage.addListener(function (
     message: { type: string; text?: string },
     sender: chrome.runtime.MessageSender,
-    sendResponse: (response?: SearchResult | undefined) => void
+    sendResponse: (response?: MultiDictSearchResult | undefined) => void
 ): boolean | undefined {
 
     if (message.type === 'search') {
@@ -255,7 +257,6 @@ chrome.runtime.onMessage.addListener(function (
     return undefined;
 });
 
-/*
 // Dictionary management messages (from options page)
 chrome.runtime.onMessage.addListener(function (
     message: { type: string },
@@ -264,66 +265,45 @@ chrome.runtime.onMessage.addListener(function (
 ): boolean | undefined {
 
     if (message.type === 'getDictStatus') {
-        getDictStatus().then(status => {
+        dictManager.getDictStatus().then(status => {
             sendResponse(status);
         });
         return true;
     }
 
     if (message.type === 'refreshDict') {
-        refreshDictData().then(data => {
-            // Reload the dictionary instance with the fresh data
-            dict = new ZhongwenDictionary(data.wordDict, data.wordIndex, data.grammarKeywords, data.vocabKeywords);
-            // Return updated status
-            return getDictStatus();
-        }).then(status => {
-            sendResponse({ success: true, status });
-        }).catch(err => {
-            sendResponse({ success: false, error: String(err) });
-        });
+        dictManager.refreshDictionaries().then(() =>
+            dictManager.getDictStatus().then(status => {
+                sendResponse({ success: true, status });
+            }).catch(err => {
+                sendResponse({ success: false, error: String(err) });
+            })
+        );
         return true;
     }
 
     return undefined;
 });
-*/
 
-function search(text: string): Promise<SearchResult | null> {
-
-    if (!dict) {
-        return loadDictionary().then(d => {
-
-            dict = d;
-
-            return lookup(dict, text);
-
-        });
-    } else {
-        let entry = lookup(dict, text);
-
-        return Promise.resolve(entry);
+async function search(text: string): Promise<MultiDictSearchResult | null> {
+    if (!dictManager.loaded) {
+			  await loadConfig();
+        await dictManager.loadDictionaries(config.enabledDicts);
     }
+
+    return dictManager.search(text);
 }
 
-async function getJsonGzipped(path: str): Promise<any> {
-    const response  = await fetch(chrome.runtime.getURL(path));
-    const gzipStream  = response.body;
-    const decompressedStream = gzipStream.pipeThrough(new DecompressionStream('gzip'));
-    return await new Response(decompressedStream).json();
-}
-
-async function loadDictionary(): Promise<TaigiDictionary> {
-    const taigiData = await getJsonGzipped('data/dict-twblg.json.gz');
-    const taigiDataExt = await getJsonGzipped('data/dict-twblg-ext.json.gz');
-    for (let i = 0; i < taigiDataExt.length; i++) {
-        taigiData.push(taigiDataExt[i]);
+// Rebuild the dictionary manager when dictionary-related settings change
+const DICT_CONFIG_KEYS = ['enabledDicts'];
+chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'local') return;
+    const changedKeys = Object.keys(changes);
+    if (changedKeys.some(k => DICT_CONFIG_KEYS.includes(k))) {
+        console.log('[Zhongwen] Dictionary config changed, rebuilding manager...');
+        dictManager.deactivate();
     }
-    return new TaigiDictionary(taigiData);
-}
-
-function lookup(dictionary: TaigiDictionary, text: string): SearchResult | null {
-    return dictionary.search(text);
-}
+});
 
 chrome.tabs.onActivated.addListener((activeInfo: chrome.tabs.TabActiveInfo): void => {
 
@@ -398,7 +378,7 @@ chrome.runtime.onMessage.addListener(function (
 
             let wordList: WordListEntry[] = data.wordList || [];
 
-            let saveToWordList: string = data.saveToWordList || defaultConfig.saveToWordList;
+            let saveToWordList: string = data.saveToWordList || config.saveToWordList;
 
             for (let i in message.entries!) {
 
