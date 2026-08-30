@@ -1,6 +1,9 @@
 import type { LanguageModule, RenderContext, DictionaryLookup } from '../../core/language-module';
 import type { DictionaryResult, MultiDictSearchResult } from '../../core/types';
-import { CedictDictionary } from './cedict';
+import { CedictDictionary, ID as CEDICT_ID, NAME as CEDICT_NAME } from './cedict';
+import { ID as TAIGI_ID, NAME as TAIGI_NAME } from './taigi';
+import { CedictLoader, getDictStatus } from './cedict-loader';
+import { TaigiLoader } from './taigi-loader';
 import { pinyinAndZhuyin } from './pinyin';
 
 /** Render a CEDICT entry in the popup. */
@@ -133,6 +136,18 @@ function makeTaigiHtml(entry: DictionaryResult, ctx: RenderContext): string {
 
 export const chineseModule: LanguageModule = {
     id: 'chinese',
+
+    dictionaries: {
+        catalog: [
+            { id: CEDICT_ID, label: CEDICT_NAME },
+            { id: TAIGI_ID, label: TAIGI_NAME },
+        ],
+        loaders: {
+            cedict: new CedictLoader(),
+            taigi: new TaigiLoader(),
+        },
+        getStatus: getDictStatus,
+    },
 
     renderEntry(entry: DictionaryResult, ctx: RenderContext): string {
         if (entry.source === 'cedict') {

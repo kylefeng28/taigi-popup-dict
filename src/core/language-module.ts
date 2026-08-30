@@ -1,9 +1,22 @@
 import type { ZhongwenConfig, MultiDictSearchResult, DictionaryResult } from './types';
-import type { Dictionary } from './dictionary';
+import type { Dictionary, DictionaryLoader } from './dictionary';
 
 /** Minimal lookup surface a module needs to reach its own loaded dictionaries. */
 export interface DictionaryLookup {
     getDictionary(id: string): Dictionary | undefined;
+}
+
+/**
+ * Dictionary registration for a language module: the catalog shown in options,
+ * the loaders keyed by dictionary id, and an optional status probe.
+ */
+export interface DictionaryRegistration {
+    /** Dictionaries offered by this module, for the options page. */
+    catalog: { id: string; label: string }[];
+    /** Loaders keyed by dictionary id. */
+    loaders: Record<string, DictionaryLoader>;
+    /** Optional language-specific status (e.g. cached-dictionary info). */
+    getStatus?(): Promise<unknown>;
 }
 
 /**
@@ -35,6 +48,9 @@ export interface RenderContext {
 export interface LanguageModule {
     /** Unique identifier, e.g. 'chinese'. */
     id: string;
+
+    /** Dictionary registration: catalog, loaders, and optional status probe. */
+    dictionaries: DictionaryRegistration;
 
     /** Render a single dictionary entry to an HTML string for the popup. */
     renderEntry(entry: DictionaryResult, ctx: RenderContext): string;

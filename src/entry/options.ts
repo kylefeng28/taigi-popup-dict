@@ -8,7 +8,9 @@
 
 import { getConfig, loadConfig } from '../core/config';
 import type { ZhongwenConfig } from '../core/types';
-import { ALL_DICTIONARIES } from '../core/manager';
+import { chineseModule } from '../lang/chinese';
+
+const ALL_DICTIONARIES = chineseModule.dictionaries.catalog;
 
 let config: ZhongwenConfig = getConfig();
 
