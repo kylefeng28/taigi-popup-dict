@@ -1,5 +1,6 @@
-import type { LanguageModule, RenderContext } from '../../core/language-module';
-import type { DictionaryResult } from '../../core/types';
+import type { LanguageModule, RenderContext, DictionaryLookup } from '../../core/language-module';
+import type { DictionaryResult, MultiDictSearchResult } from '../../core/types';
+import { CedictDictionary } from './cedict';
 import { pinyinAndZhuyin } from './pinyin';
 
 /** Render a CEDICT entry in the popup. */
@@ -140,5 +141,26 @@ export const chineseModule: LanguageModule = {
             return makeTaigiHtml(entry, ctx);
         }
         return '';
+    },
+
+    postProcessSearch(result: MultiDictSearchResult, dicts: DictionaryLookup): void {
+        // Check for grammar/vocab keywords in CEDICT entries
+        const cedict = dicts.getDictionary('cedict') as CedictDictionary | undefined;
+        if (!cedict) return;
+
+        for (let i = 0; i < result.results.length; i++) {
+            const entry = result.results[i];
+            if (entry.source === 'cedict') {
+                const word = entry.headword;
+                if (cedict.hasGrammarKeyword(word) && result.matchLen === word.length) {
+                    // the final index should be the last one with the maximum length
+                    result.grammar = { keyword: word, index: i };
+                }
+                if (cedict.hasVocabKeyword(word) && result.matchLen === word.length) {
+                    // the final index should be the last one with the maximum length
+                    result.vocab = { keyword: word, index: i };
+                }
+            }
+        }
     },
 };

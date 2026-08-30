@@ -45,12 +45,13 @@
  */
 
 import { DictionaryManager } from '../core/manager';
+import { chineseModule } from '../lang/chinese';
 import { getConfig, loadConfig } from '../core/config';
 import type { ZhongwenConfig, MultiDictSearchResult, WordListEntry } from '../core/types';
 
 let config: ZhongwenConfig = getConfig();
 
-let dictManager = new DictionaryManager();
+let dictManager = new DictionaryManager(chineseModule);
 
 chrome.runtime.onInstalled.addListener((): void => {
 

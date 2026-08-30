@@ -1,6 +1,6 @@
 import type { Dictionary, DictionaryLoader } from './dictionary';
 import type { MultiDictSearchResult, DictionaryResult } from './types';
-import { CedictDictionary } from '../lang/chinese/cedict';
+import type { LanguageModule } from './language-module';
 import { CedictLoader, getDictStatus } from '../lang/chinese/cedict-loader';
 import { TaigiLoader } from '../lang/chinese/taigi-loader';
 import { ID as CEDICT_ID, NAME as CEDICT_NAME } from '../lang/chinese/cedict';
@@ -22,6 +22,11 @@ export const ALL_DICTIONARIES = [
  */
 export class DictionaryManager {
     private dictionaries: Dictionary[] = [];
+    private languageModule: LanguageModule;
+
+    constructor(languageModule: LanguageModule) {
+        this.languageModule = languageModule;
+    }
 
     deactivate(): void {
         this.dictionaries = [];
@@ -124,24 +129,8 @@ export class DictionaryManager {
             more: hasMore || undefined,
         };
 
-        // Check for grammar/vocab keywords in CEDICT entries
-        const cedict = this.getDictionary('cedict') as CedictDictionary | undefined;
-        if (cedict) {
-            for (let i = 0; i < result.results.length; i++) {
-                const entry = result.results[i];
-                if (entry.source === 'cedict') {
-                    const word = entry.headword;
-                    if (cedict.hasGrammarKeyword(word) && result.matchLen === word.length) {
-                        // the final index should be the last one with the maximum length
-                        result.grammar = { keyword: word, index: i };
-                    }
-                    if (cedict.hasVocabKeyword(word) && result.matchLen === word.length) {
-                        // the final index should be the last one with the maximum length
-                        result.vocab = { keyword: word, index: i };
-                    }
-                }
-            }
-        }
+        // Let the active language module enrich the result (e.g. grammar/vocab hints).
+        this.languageModule.postProcessSearch?.(result, this);
 
         return result;
     }
