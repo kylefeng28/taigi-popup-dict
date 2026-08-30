@@ -45,7 +45,7 @@
  */
 
 import { getConfig, loadConfig } from '../core/config';
-import { numericPinyin2Zhuyin } from '../lang/chinese/zhuyin';
+import { pinyinAndZhuyin } from '../lang/chinese/pinyin';
 import { ttsMandarin, ttsCantonese } from '../lang/chinese/tts';
 import type { ZhongwenConfig, MultiDictSearchResult, DictionaryResult, SelectionEnd } from '../core/types';
 
@@ -957,7 +957,7 @@ function makeCedictHtml(entry: DictionaryResult, index: number, result: MultiDic
     if (config.fontSize === 'small') {
         pinyinClass += '-small';
     }
-    let p: [string, string, string] = pinyinAndZhuyin(entry.reading, showToneColors, pinyinClass);
+    let p: [string, string, string] = pinyinAndZhuyin(entry.reading, showToneColors, pinyinClass, config.fontSize);
     html += p[0];
 
     // Zhuyin
@@ -1060,116 +1060,6 @@ function makeTaigiHtml(entry: DictionaryResult, index: number, texts: string[][]
     return html;
 }
 
-
-let tones: Record<number, string> = {
-    1: '&#772;',
-    2: '&#769;',
-    3: '&#780;',
-    4: '&#768;',
-    5: ''
-};
-
-let utones: Record<number, string> = {
-    1: '\u0304',
-    2: '\u0301',
-    3: '\u030C',
-    4: '\u0300',
-    5: ''
-};
-
-function parse(s: string): RegExpMatchArray | null {
-    return s.match(/([^AEIOU:aeiou]*)([AEIOUaeiou:]+)([^aeiou:]*)([1-5])/);
-}
-
-function tonify(vowels: string, tone: number): [string, string] {
-    let html = '';
-    let text = '';
-
-    if (vowels === 'ou') {
-        html = 'o' + tones[tone] + 'u';
-        text = 'o' + utones[tone] + 'u';
-    } else {
-        let tonified: boolean = false;
-        for (let i = 0; i < vowels.length; i++) {
-            let c: string = vowels.charAt(i);
-            html += c;
-            text += c;
-            if (c === 'a' || c === 'e') {
-                html += tones[tone];
-                text += utones[tone];
-                tonified = true;
-            } else if (i === vowels.length - 1 && !tonified) {
-                html += tones[tone];
-                text += utones[tone];
-                tonified = true;
-            }
-        }
-        html = html.replace(/u:/, '&uuml;');
-        text = text.replace(/u:/, '\u00FC');
-    }
-
-    return [html, text];
-}
-
-function pinyinAndZhuyin(syllables: string, showToneColors: boolean, pinyinClass: string): [string, string, string] {
-    let text = '';
-    let html = '';
-    let zhuyin = '';
-    let a: string[] = syllables.split(/[\s·]+/);
-    for (let i = 0; i < a.length; i++) {
-        let syllable: string = a[i];
-
-        // ',' in pinyin
-        if (syllable === ',') {
-            html += ' ,';
-            text += ' ,';
-            continue;
-        }
-
-        if (i > 0) {
-            html += '&nbsp;';
-            text += ' ';
-            zhuyin += '&nbsp;';
-        }
-        if (syllable === 'r5') {
-            if (showToneColors) {
-                html += '<span class="' + pinyinClass + ' tone5">r</span>';
-            } else {
-                html += '<span class="' + pinyinClass + '">r</span>';
-            }
-            text += 'r';
-            continue;
-        }
-        if (syllable === 'xx5') {
-            if (showToneColors) {
-                html += '<span class="' + pinyinClass + ' tone5">??</span>';
-            } else {
-                html += '<span class="' + pinyinClass + '">??</span>';
-            }
-            text += '??';
-            continue;
-        }
-        let m: RegExpMatchArray | null = parse(syllable);
-        if (showToneColors) {
-            html += '<span class="' + pinyinClass + ' tone' + m![4] + '">';
-        } else {
-            html += '<span class="' + pinyinClass + '">';
-        }
-        let t: [string, string] = tonify(m![2], parseInt(m![4], 10));
-        html += m![1] + t[0] + m![3];
-        html += '</span>';
-        text += m![1] + t[1] + m![3];
-
-        let zhuyinClass = 'w-zhuyin';
-        if (config.fontSize === 'small') {
-            zhuyinClass += '-small';
-        }
-
-        zhuyin += '<span class="tone' + m![4] + ' ' + zhuyinClass + '">'
-            + numericPinyin2Zhuyin(syllable) + '</span>';
-    }
-    return [html, text, zhuyin];
-}
 
 let miniHelp: string = `
     <span style="font-weight: bold;">Zhongwen Chinese-English Dictionary</span><br><br>
