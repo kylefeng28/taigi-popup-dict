@@ -86,7 +86,7 @@ async function build(watch) {
 
     // Service worker (background worker)
     const serviceCtx = buildOrWatch({
-        entryPoints: ['src/background.ts'],
+        entryPoints: ['src/entry/background.ts'],
         bundle: true,
         outfile: 'dist/background.js',
         format: 'esm',
@@ -96,11 +96,11 @@ async function build(watch) {
 
     const scripts = {
       // Content script for popup
-      'src/content.ts': 'dist/content.js',
+      'src/entry/content.ts': 'dist/content.js',
       // Word list script
-      'src/wordlist.ts': 'dist/wordlist.js',
+      'src/lang/chinese/wordlist.ts': 'dist/wordlist.js',
       // Options page
-      'src/options.ts': 'dist/options.js',
+      'src/entry/options.ts': 'dist/options.js',
     };
 
     for (const [src, outfile] of Object.entries(scripts)) {

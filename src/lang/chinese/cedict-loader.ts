@@ -11,7 +11,7 @@
  */
 
 import { CedictDictionary } from './cedict';
-import type { DictionaryLoader } from './dictionary';
+import type { DictionaryLoader } from '../../core/dictionary';
 
 const CEDICT_URL = 'https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz';
 const DB_NAME = 'zhongwen-dict';
@@ -44,8 +44,8 @@ interface CachedDict {
     timestamp: number;
 }
 
-const logMessage = (...args) => console.log('[Zhongwen]', ...args);
-const logWarn = (...args) => console.warn('[Zhongwen]', ...args);
+const logMessage = (...args: unknown[]) => console.log('[Zhongwen]', ...args);
+const logWarn = (...args: unknown[]) => console.warn('[Zhongwen]', ...args);
 
 // --- IndexedDB helpers ---
 

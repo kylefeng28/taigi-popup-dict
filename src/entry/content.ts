@@ -44,10 +44,11 @@
 
  */
 
-import { getConfig, loadConfig } from './shared/config';
-import { numericPinyin2Zhuyin } from './shared/zhuyin';
-import { ttsMandarin, ttsCantonese } from './tts';
-import type { ZhongwenConfig, MultiDictSearchResult, DictionaryResult, SelectionEnd } from './shared/types';
+import { getConfig, loadConfig } from '../core/config';
+import { ttsMandarin, ttsCantonese } from '../lang/chinese/tts';
+import { chineseModule } from '../lang/chinese';
+import type { RenderContext } from '../core/language-module';
+import type { ZhongwenConfig, MultiDictSearchResult, DictionaryResult, SelectionEnd } from '../core/types';
 
 let config: ZhongwenConfig = getConfig();
 loadConfig();
@@ -915,12 +916,8 @@ function makeHtml(result: MultiDictSearchResult, showToneColors: boolean): strin
 
     for (let i = 0; i < result.results.length; ++i) {
         const entry: DictionaryResult = result.results[i];
-
-        if (entry.source === 'cedict') {
-            html += makeCedictHtml(entry, i, result, showToneColors, texts);
-        } else if (entry.source === 'taigi') {
-            html += makeTaigiHtml(entry, i, texts);
-        }
+        const ctx: RenderContext = { config, result, index: i, showToneColors, texts };
+        html += chineseModule.renderEntry(entry, ctx);
     }
 
     if (result.more) {
@@ -934,242 +931,6 @@ function makeHtml(result: MultiDictSearchResult, showToneColors: boolean): strin
     return html;
 }
 
-/** Render a CEDICT entry in the popup */
-function makeCedictHtml(entry: DictionaryResult, index: number, result: MultiDictSearchResult, showToneColors: boolean, texts: string[][]): string {
-    let html = '';
-    let hanziClass = 'w-hanzi';
-    if (config.fontSize === 'small') {
-        hanziClass += '-small';
-    }
-
-    // Hanzi
-    if (config.simpTrad === 'auto') {
-        html += '<span class="' + hanziClass + '">' + entry.headword + '</span>&nbsp;';
-    } else {
-        html += '<span class="' + hanziClass + '">' + entry.headword + '</span>&nbsp;';
-        if (entry.traditional && entry.traditional !== entry.headword) {
-            html += '<span class="' + hanziClass + '">' + entry.traditional + '</span>&nbsp;';
-        }
-    }
-
-    // Pinyin
-    let pinyinClass = 'w-pinyin';
-    if (config.fontSize === 'small') {
-        pinyinClass += '-small';
-    }
-    let p: [string, string, string] = pinyinAndZhuyin(entry.reading, showToneColors, pinyinClass);
-    html += p[0];
-
-    // Zhuyin
-    if (config.zhuyin) {
-        html += '<br>' + p[2];
-    }
-
-    // Definition
-    let defClass = 'w-def';
-    if (config.fontSize === 'small') {
-        defClass += '-small';
-    }
-    let translation: string = entry.definitions.map(d => d.def).join(' ◆ ');
-    html += '<br><span class="' + defClass + '">' + translation + '</span><br>';
-
-    let addFinalBr: boolean = false;
-
-    // Grammar
-    if (config.grammar && result.grammar && result.grammar.index === index) {
-        html += '<br><span class="grammar">Press "g" for grammar and usage notes.</span><br>';
-        addFinalBr = true;
-    }
-
-    // Vocab
-    if (config.vocab && result.vocab && result.vocab.index === index) {
-        html += '<br><span class="vocab">Press "v" for vocabulary notes.</span><br>';
-        addFinalBr = true;
-    }
-
-    if (addFinalBr) {
-        html += '<br>';
-    }
-
-    // Store for clipboard: [simplified, traditional, pinyin_text, translation, raw_pinyin]
-    texts[index] = [entry.headword, entry.traditional || entry.headword, p[1], translation, entry.reading];
-
-    return html;
-}
-
-/** Render a Taigi entry in the popup */
-function makeTaigiHtml(entry: DictionaryResult, index: number, texts: string[][]): string {
-    let html = '';
-    let hanziClass = 'w-hanzi';
-    if (config.fontSize === 'small') {
-        hanziClass += '-small';
-    }
-
-    // Headword
-    html += '<span class="' + hanziClass + '">' + entry.headword + '</span>&nbsp;';
-
-    // Reading type badge (白/文/替/俗)
-    if (entry.readingType) {
-        const colors: Record<string, string> = { '白': 'green', '文': 'blue', '替': 'gray', '俗': 'orange' };
-        const color = colors[entry.readingType] || 'gray';
-        html += '<span style="color:' + color + ';font-weight:bold;font-size:0.8em;">' + entry.readingType + '</span>&nbsp;';
-    }
-
-    // Tai-lo reading
-    let pinyinClass = 'w-pinyin';
-    if (config.fontSize === 'small') {
-        pinyinClass += '-small';
-    }
-    html += '<span class="' + pinyinClass + '">' + entry.reading + '</span>';
-
-    // Definitions
-    let defClass = 'w-def';
-    if (config.fontSize === 'small') {
-        defClass += '-small';
-    }
-
-    for (const def of entry.definitions) {
-        let defHtml = '';
-        if (def.type) {
-            defHtml += '<b>【' + def.type + '】</b>';
-        }
-        defHtml += def.def;
-        html += '<br><span class="' + defClass + '">' + defHtml + '</span>';
-
-        // Examples
-        if (def.examples) {
-            for (const ex of def.examples) {
-                html += '<br><span class="' + defClass + '" style="margin-left:1em;font-size:0.9em;">';
-                html += ex.text;
-                if (ex.reading) {
-                    html += ' <i>' + ex.reading + '</i>';
-                }
-                if (ex.translation) {
-                    html += ' <span style="color:gray;">' + ex.translation + '</span>';
-                }
-                html += '</span>';
-            }
-        }
-    }
-    html += '<br>';
-
-    // Store for clipboard: [simplified, traditional, reading, definition, raw_reading]
-    const translation = entry.definitions.map(d => (d.type ? '【' + d.type + '】' : '') + d.def).join('; ');
-    texts[index] = [entry.headword, entry.headword, entry.reading, translation, entry.reading];
-
-    return html;
-}
-
-
-let tones: Record<number, string> = {
-    1: '&#772;',
-    2: '&#769;',
-    3: '&#780;',
-    4: '&#768;',
-    5: ''
-};
-
-let utones: Record<number, string> = {
-    1: '\u0304',
-    2: '\u0301',
-    3: '\u030C',
-    4: '\u0300',
-    5: ''
-};
-
-function parse(s: string): RegExpMatchArray | null {
-    return s.match(/([^AEIOU:aeiou]*)([AEIOUaeiou:]+)([^aeiou:]*)([1-5])/);
-}
-
-function tonify(vowels: string, tone: number): [string, string] {
-    let html = '';
-    let text = '';
-
-    if (vowels === 'ou') {
-        html = 'o' + tones[tone] + 'u';
-        text = 'o' + utones[tone] + 'u';
-    } else {
-        let tonified: boolean = false;
-        for (let i = 0; i < vowels.length; i++) {
-            let c: string = vowels.charAt(i);
-            html += c;
-            text += c;
-            if (c === 'a' || c === 'e') {
-                html += tones[tone];
-                text += utones[tone];
-                tonified = true;
-            } else if (i === vowels.length - 1 && !tonified) {
-                html += tones[tone];
-                text += utones[tone];
-                tonified = true;
-            }
-        }
-        html = html.replace(/u:/, '&uuml;');
-        text = text.replace(/u:/, '\u00FC');
-    }
-
-    return [html, text];
-}
-
-function pinyinAndZhuyin(syllables: string, showToneColors: boolean, pinyinClass: string): [string, string, string] {
-    let text = '';
-    let html = '';
-    let zhuyin = '';
-    let a: string[] = syllables.split(/[\s·]+/);
-    for (let i = 0; i < a.length; i++) {
-        let syllable: string = a[i];
-
-        // ',' in pinyin
-        if (syllable === ',') {
-            html += ' ,';
-            text += ' ,';
-            continue;
-        }
-
-        if (i > 0) {
-            html += '&nbsp;';
-            text += ' ';
-            zhuyin += '&nbsp;';
-        }
-        if (syllable === 'r5') {
-            if (showToneColors) {
-                html += '<span class="' + pinyinClass + ' tone5">r</span>';
-            } else {
-                html += '<span class="' + pinyinClass + '">r</span>';
-            }
-            text += 'r';
-            continue;
-        }
-        if (syllable === 'xx5') {
-            if (showToneColors) {
-                html += '<span class="' + pinyinClass + ' tone5">??</span>';
-            } else {
-                html += '<span class="' + pinyinClass + '">??</span>';
-            }
-            text += '??';
-            continue;
-        }
-        let m: RegExpMatchArray | null = parse(syllable);
-        if (showToneColors) {
-            html += '<span class="' + pinyinClass + ' tone' + m![4] + '">';
-        } else {
-            html += '<span class="' + pinyinClass + '">';
-        }
-        let t: [string, string] = tonify(m![2], parseInt(m![4], 10));
-        html += m![1] + t[0] + m![3];
-        html += '</span>';
-        text += m![1] + t[1] + m![3];
-
-        let zhuyinClass = 'w-zhuyin';
-        if (config.fontSize === 'small') {
-            zhuyinClass += '-small';
-        }
-
-        zhuyin += '<span class="tone' + m![4] + ' ' + zhuyinClass + '">'
-            + numericPinyin2Zhuyin(syllable) + '</span>';
-    }
-    return [html, text, zhuyin];
-}
 
 let miniHelp: string = `
     <span style="font-weight: bold;">Zhongwen Chinese-English Dictionary</span><br><br>
