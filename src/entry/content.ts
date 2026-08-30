@@ -44,10 +44,10 @@
 
  */
 
-import { getConfig, loadConfig } from './shared/config';
-import { numericPinyin2Zhuyin } from './shared/zhuyin';
-import { ttsMandarin, ttsCantonese } from './tts';
-import type { ZhongwenConfig, MultiDictSearchResult, DictionaryResult, SelectionEnd } from './shared/types';
+import { getConfig, loadConfig } from '../core/config';
+import { numericPinyin2Zhuyin } from '../lang/chinese/zhuyin';
+import { ttsMandarin, ttsCantonese } from '../lang/chinese/tts';
+import type { ZhongwenConfig, MultiDictSearchResult, DictionaryResult, SelectionEnd } from '../core/types';
 
 let config: ZhongwenConfig = getConfig();
 loadConfig();

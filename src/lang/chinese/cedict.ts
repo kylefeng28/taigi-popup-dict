@@ -46,8 +46,8 @@
 
 'use strict';
 
-import type { Dictionary } from './dictionary';
-import type { DictSearchResponse, DictionaryResult, Definition } from '../shared/types';
+import type { Dictionary } from '../../core/dictionary';
+import type { DictSearchResponse, DictionaryResult, Definition } from '../../core/types';
 
 /** Regex to parse a CEDICT line: traditional simplified [pinyin] /def1/def2/ */
 const CEDICT_LINE_RE = /^([^\s]+?)\s+([^\s]+?)\s+\[(.*?)\]?\s*\/(.+)\//;
@@ -57,6 +57,7 @@ export const NAME = 'CC-CEDICT (Mandarin Chinese → English)';
 
 export class CedictDictionary implements Dictionary {
     readonly id = ID;
+    readonly name = NAME;
 
     wordDict: string;
     wordIndex: string;

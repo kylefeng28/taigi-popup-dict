@@ -1,6 +1,6 @@
 import { TaigiDictionary } from './taigi';
-import type { DictionaryLoader } from './dictionary';
-import { getJsonGzipped } from '../util';
+import type { DictionaryLoader } from '../../core/dictionary';
+import { getJsonGzipped } from '../../core/util';
 
 /**
  * Loader for the Taigi (Taiwanese Hokkien) dictionary.
