@@ -3,40 +3,23 @@
 [![Chrome Web Store Version](https://img.shields.io/chrome-web-store/v/dfdfnjiempkpkclanlodafpnbjnjghai)][chrome]
 [![Chrome Users](https://img.shields.io/chrome-web-store/users/dfdfnjiempkpkclanlodafpnbjnjghai?label=chrome%20users)][chrome]
 
-<!--
 [![Mozilla Add-on Version](https://img.shields.io/amo/v/zhongwen)][firefox]
 [![Firefox Users](https://img.shields.io/amo/users/zhongwen?label=firefox%20users)][firefox]
--->
 
 ## A Taiwanese Taigi Pop-Up Dictionary and Learning Tool
 
-This browser extension allows you to hover Chinese characters and words and see the Tâi-lô pronunciation and definition
-by simply hovering over them with the mouse.  
+This browser extension allows you to hover over Chinese characters and words and see the 台語 pronunciation using Tâi-lô. The Mandarin (華語) pronunciation and definition is also shown side by side.
+
+- Taiwanese pronunciation uses Tâi-lô and is sourced from a bundled copy of [教育部臺灣台語常用詞辭典](https://sutian.moe.edu.tw/zh-hant/) (Ministry of Education Dictionary of Commonly Used Taiwanese Taigi Words)
+- Mandarin pronunciation uses zhuyin by default but can be changed to pinyin.
 
 Based on Christian Schiller's excellent Zhongwen popup dictionary for Mandarin: https://github.com/cschiller/zhongwen
 
-## Highlights
-- Supports both traditional and simplified characters.
-- Includes a recent version of the widely used 
-  [CEDICT](https://cc-cedict.org/wiki) Chinese English dictionary.
-- Displays Hanyu Pinyin along both the simplified and traditional characters,
-  however only showing either simplified or traditional characters
-  can be configured as an option.
-- As a learning aid it uses different colors for displaying the Pinyin
-  syllables, depending on the tone of the Chinese character.
-- Can be turned on and off with a single mouse-click.
-- Highlights the characters whose translation is displayed in the pop-up
-  window.
-- Also supports keyboard navigation for translating the next character, the
-  next word, or the previous character.
-- Allows you to add words to a built-in word list. Words from this list can be
-  exported to a text file for further processing, such as importing the words
-  into [Anki](https://apps.ankiweb.net).
-- Includes links to grammar and usage notes on the 
-  [Chinese Grammar Wiki](https://resources.allsetlearning.com/chinese/grammar).
-- Supports exporting words to the [Skritter](https://skritter.com) vocabulary 
-  queue.
-
+## Changelog
+- v0.2.1: Add shortcut to MoE website
+- v0.2.0: Show Mandarin entry alongside Taigi
+- v0.1.1: Firefox support, add more entries, compress bundled dictionary data using gzip
+- v0.1.0: Initial release
 
 ## Installation
 
@@ -46,12 +29,10 @@ The Taigi Chrome extension is available via the [Chrome Web Store][chrome]
 Simply click on the "Add to Chrome" button to start the installation.
 
 
-<!--
 ### Firefox
 The Taigi Firefox extension is available via the [Firefox Add-Ons site][firefox]
 
 Simply click on the "Add to Firefox" button to start the installation.
--->
 
 
 ## How Does It Work?
@@ -96,4 +77,4 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 *Copyright (C) 2026 Kyle Feng. Forked from Christian Schiller's Zhongwen extension as per GNU GPLv2 license.**
 
 [chrome]: https://chromewebstore.google.com/detail/taigi-taiwainese-%E5%8F%B0%E8%AA%9E-popup/dfdfnjiempkpkclanlodafpnbjnjghai
-[firefox]: https://addons.mozilla.org/en-US/firefox/addon/zhongwen/
+[firefox]: https://addons.mozilla.org/en-US/firefox/addon/taigi-popup-dictionary/
