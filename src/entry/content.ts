@@ -50,6 +50,9 @@ import { chineseModule } from '../lang/chinese';
 import type { RenderContext } from '../core/language-module';
 import type { ZhongwenConfig, MultiDictSearchResult, DictionaryResult, SelectionEnd } from '../core/types';
 
+const HIDE_TIMEOUT = 700;
+const HIDE_THRESHOLD = 20;
+
 let config: ZhongwenConfig = getConfig();
 loadConfig();
 
@@ -82,6 +85,13 @@ let popX: number = 0;
 let popY: number = 0;
 
 let timer: ReturnType<typeof setTimeout> | null = null;
+
+// Timer used to delay hiding the popup so the mouse can travel into it
+// (e.g. to reach the audio play button). Cancelled if the mouse re-enters
+// the popup or a word.
+let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+let mouseOverPopup: boolean = false;
 
 let altView: number = 0;
 
@@ -431,11 +441,8 @@ function onKeyDown(keyDown: KeyboardEvent): void {
             }
             break;
 
-        case 69: // 'e': TTS Cantonese
+        case 69: // 'e': Play Taigi audio
             playTaigiAudio();
-            // if (config.ttsEnabled) {
-            //     ttsCantonese(window.getSelection()?.toString() || '');
-            // }
             break;
 
         default:
@@ -470,6 +477,25 @@ function onMouseMove(mouseMove: MouseEvent): void {
             return;
         }
     }
+
+    // If the pointer is over the popup itself, keep it open and don't run word detection
+    if (isPointerOverPopup(mouseMove.clientX, mouseMove.clientY)) {
+        mouseOverPopup = true;
+        cancelHidePopup();
+        clearTimeout(timer);
+        return;
+    }
+
+    // While a hide is pending, if the pointer is still within the popup's buffer
+    // zone, keep the popup open since there might be a gap between the mouse and the popup that the pointer has to move across.
+    if (hideTimer && isPointerWithinPopup(mouseMove.clientX, mouseMove.clientY, HIDE_THRESHOLD)) {
+        cancelHidePopup();
+        clearTimeout(timer);
+        return;
+    }
+
+    mouseOverPopup = false;
+
     clientX = mouseMove.clientX;
     clientY = mouseMove.clientY;
 
@@ -527,7 +553,8 @@ function onMouseMove(mouseMove: MouseEvent): void {
     if (rangeNode && (rangeNode as Text).data && rangeOffset < (rangeNode as Text).data.length) {
         popX = mouseMove.clientX;
         popY = mouseMove.clientY;
-        timer = setTimeout(() => triggerSearch(), 50);
+        cancelHidePopup();
+        timer = setTimeout(() => triggerSearch(), 80);
         return;
     }
 
@@ -535,9 +562,8 @@ function onMouseMove(mouseMove: MouseEvent): void {
     let dx: number = popX - mouseMove.clientX;
     let dy: number = popY - mouseMove.clientY;
     let distance: number = Math.sqrt(dx * dx + dy * dy);
-    if (distance > 4) {
-        clearHighlight();
-        hidePopup();
+    if (distance > HIDE_THRESHOLD && !mouseOverPopup) {
+        scheduleHidePopup();
     }
 }
 
@@ -674,6 +700,27 @@ function showPopup(html: string, elem?: EventTarget | null, x?: number, y?: numb
         popup = document.createElement('div');
         popup.setAttribute('id', 'zhongwen-window');
         document.documentElement.appendChild(popup);
+
+        // Keep the popup open while the mouse is inside it, so the user can
+        // reach the audio play buttons.
+        popup.addEventListener('mouseenter', () => {
+            mouseOverPopup = true;
+            cancelHidePopup();
+        });
+        popup.addEventListener('mouseleave', () => {
+            mouseOverPopup = false;
+            scheduleHidePopup();
+        });
+
+        // Play the corresponding audio when a play button is clicked.
+        popup.addEventListener('click', (e: MouseEvent) => {
+            const btn = (e.target as HTMLElement).closest('.taigi-audio-btn') as HTMLElement | null;
+            if (!btn) return;
+            const audioId = btn.getAttribute('data-audio-id');
+            if (audioId) {
+                playTaigiAudioById(audioId);
+            }
+        });
     }
 
     popup.style.width = 'auto';
@@ -775,11 +822,55 @@ function showPopup(html: string, elem?: EventTarget | null, x?: number, y?: numb
 }
 
 function hidePopup(): void {
+    cancelHidePopup();
+    mouseOverPopup = false;
     let popup = document.getElementById('zhongwen-window');
     if (popup) {
         popup.style.display = 'none';
         popup.textContent = '';
     }
+}
+
+function scheduleHidePopup(): void {
+    if (hideTimer) {
+        return;
+    }
+    hideTimer = setTimeout(() => {
+        hideTimer = null;
+        if (mouseOverPopup) {
+            return;
+        }
+        clearHighlight();
+        hidePopup();
+    }, HIDE_TIMEOUT);
+}
+
+function cancelHidePopup(): void {
+    if (hideTimer) {
+        clearTimeout(hideTimer);
+        hideTimer = null;
+    }
+}
+
+function isPointerOverPopup(clientX: number, clientY: number): boolean {
+    return isPointerWithinPopup(clientX, clientY, 0, 0);
+}
+
+function isPointerWithinPopup(clientX: number, clientY: number, margin: number): boolean {
+    const popup = document.getElementById('zhongwen-window');
+    if (!popup || popup.style.display === 'none') {
+        return false;
+    }
+    const rect = popup.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) {
+        return false;
+    }
+    return (
+        clientX >= rect.left - margin &&
+        clientX <= rect.right + margin &&
+        clientY >= rect.top - margin &&
+        clientY <= rect.bottom + margin
+    );
 }
 
 function highlightMatch(doc: Document, rangeStartNode: Text, rangeStartOffset: number, matchLen: number, selEndList: SelectionEnd[]): void {
@@ -929,10 +1020,22 @@ function copyToClipboard(data: string): void {
 }
 
 /**
- * Play the Taigi audio for the first matching entry that has an audio ID.
+ * Build the MOE audio URL for a given audio ID.
  * Audio is hosted on the MOE website, partitioned by floor(id / 1000).
+ */
+function taigiAudioUrl(audioId: string): string {
+    const partition = Math.floor(Number(audioId) / 1000);
+    return `https://sutian.moe.edu.tw/media/senn/mp3/imtong/subak/${partition}/${audioId}.mp3`;
+}
+
+/**
+ * Play a specific Taigi audio clip by its audio ID.
  * Playback is routed through an offscreen document via the background service worker.
  */
+function playTaigiAudioById(audioId: string): void {
+    chrome.runtime.sendMessage({ type: 'playAudio', url: taigiAudioUrl(audioId) });
+}
+
 function playTaigiAudio(): void {
     // Find the first Taigi result with an audioId
     const taigiEntry = savedDictResults.find(e => e.source === 'taigi' && e.audioId);
@@ -941,11 +1044,7 @@ function playTaigiAudio(): void {
 			return;
 		};
 
-    const audioId = taigiEntry.audioId;
-    const partition = Math.floor(Number(audioId) / 1000);
-    const url = `https://sutian.moe.edu.tw/media/senn/mp3/imtong/subak/${partition}/${audioId}.mp3`;
-
-    chrome.runtime.sendMessage({ type: 'playAudio', url });
+    playTaigiAudioById(taigiEntry.audioId);
 }
 
 function makeHtml(multiResult: MultiDictSearchResult, showToneColors: boolean): string {

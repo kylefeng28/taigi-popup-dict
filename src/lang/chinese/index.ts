@@ -87,6 +87,12 @@ function makeTaigiHtml(entry: DictionaryResult, ctx: RenderContext): string {
     }
     html += '<span class="' + pinyinClass + '">' + entry.reading + '</span>';
 
+    // Play button for MoE audio (each heteronym may have its own audio)
+    if (entry.audioId) {
+        html += '&nbsp;<button class="taigi-audio-btn" data-audio-id="' + entry.audioId +
+            '" title="Play Taigi audio" aria-label="Play Taigi audio">&#9654;</button>';
+    }
+
     // Definitions
     let defClass = 'w-def';
     if (config.fontSize === 'small') {
